@@ -1,6 +1,7 @@
 # Plot attributions
 import os
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import itertools
 from optparse import OptionParser
@@ -20,7 +21,7 @@ def calc_mean_corrs(attrs):
 
 
 def plot_attrs(attrs, valign=False, inverty=True, title="", meancorrs=None,
-               top_labels=None, y_labels=None):
+               top_labels=None, y_labels=None, y_right_labels=None):
   reps, maps, rows, cols = attrs.shape
   fig, axs = plt.subplots(reps, maps, squeeze=False, figsize=(maps*1.5, reps*1.5))
   fig.suptitle(title)
@@ -53,7 +54,11 @@ def plot_attrs(attrs, valign=False, inverty=True, title="", meancorrs=None,
     for r in range(reps):
       axs[r, 0].set_ylabel("model {0}\npred = {1:.3f}".format(r, y_labels[r]))
       fig.supylabel("Each row corresponds to a trained model")
-
+  if y_right_labels is not None:
+    for r in range(reps):    
+      axr = axs[r,-1].twinx()
+      axr.set_yticks([])
+      axr.set_ylabel("balanced acc.\n= {:.3f}".format(y_right_labels[r]))
   plt.tight_layout()
 
 
@@ -83,13 +88,17 @@ def make_html_table(files):
 # Options
 parser = OptionParser()
 parser.add_option("-f", "--attr_files", 
-                  help="Comma-delimited list of attribution files.")
+                  help="Semicolon-delimited list of attribution files.")
+parser.add_option("-m", "--metric_files",
+                  help="Semicolon-delimited list of metrics files.")
 parser.add_option("-o", "--out_dir", 
                   help="Path to output directory.")
 (options, args) = parser.parse_args()
-attrs_files = options.attr_files.split(",")
+attrs_files = options.attr_files.split(";")
 out_dir = options.out_dir
 os.makedirs(os.path.dirname(out_dir), exist_ok=True)
+
+metric_files = options.metric_files.split(";") if options.metric_files is not None else None
 
 # Load attributions
 occs = np.stack([np.load(attrs_file)["occlusion"] for attrs_file in attrs_files], axis=1)
@@ -108,6 +117,13 @@ preds = np.squeeze(np.stack([np.load(attrs_file)["ypred"] for attrs_file in attr
 # Load metadata
 patch_sizes = np.load(attrs_files[0])["patch_sizes"]
 patch_labels = ["{}x{}".format(ps, ps) for ps in patch_sizes]
+
+# Load metrics
+if metric_files is not None:
+  dfMetrics = pd.concat([pd.read_csv(mf) for mf in metric_files])
+  y_right_labels = dfMetrics["balanced_accuracy"].values
+else:
+  y_right_labels = None
 
 outfiles = [
   ("sample-" + str(si) + "_occs_n.png",
@@ -128,7 +144,7 @@ for sample in samples:
   target = y[sample]
 
   # Plot sample
-  fig, axs = plt.subplots(1, n_bands, squeeze=False)
+  fig, axs = plt.subplots(1, n_bands, squeeze=False, figsize=(4*n_bands, 4))
   for b in range(n_bands):
     axs[0, b].contour(X[sample, :, :, b])
     axs[0, b].axis("off")
@@ -140,19 +156,19 @@ for sample in samples:
   # Plot attribution maps
   plot_attrs(occs[sample], top_labels=patch_labels, y_labels=preds[sample],
       title="Sample {}  |  target: {}  |  Occlusion Maps".format(sample, target),
-      meancorrs=occs_mean_corrs)
+      meancorrs=occs_mean_corrs, y_right_labels=y_right_labels)
   plt.savefig(out_dir + outfiles[sample][0])
   plot_attrs(occs[sample], valign=True,  top_labels=patch_labels, y_labels=preds[sample],
       title="Sample {}  |  target: {}  |  Occlusion Maps".format(sample, target),
-      meancorrs=occs_mean_corrs)
+      meancorrs=occs_mean_corrs, y_right_labels=y_right_labels)
   plt.savefig(out_dir + outfiles[sample][1])
   plot_attrs(sums[sample],  top_labels=patch_labels, y_labels=preds[sample],
       title="Sample {}  |  target: {}  |  Occlusion Sums".format(sample, target),
-      meancorrs=sums_mean_corrs)
+      meancorrs=sums_mean_corrs, y_right_labels=y_right_labels)
   plt.savefig(out_dir + outfiles[sample][2])
   plot_attrs(sums[sample], valign=True, top_labels=patch_labels, y_labels=preds[sample],
       title="Sample {}  |  target: {}  |  Occlusion Sums".format(sample, target),
-      meancorrs=sums_mean_corrs)
+      meancorrs=sums_mean_corrs, y_right_labels=y_right_labels)
   plt.savefig(out_dir + outfiles[sample][3])
 
   # Add plots to HTML report

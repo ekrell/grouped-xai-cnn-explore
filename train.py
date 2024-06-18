@@ -11,7 +11,6 @@ from keras.layers import SpatialDropout2D
 from keras.optimizers import SGD, Adam
 from keras.regularizers import l2
 import keras.backend as K
-tf.compat.v1.enable_eager_execution()
 
 # Options
 parser = OptionParser()
