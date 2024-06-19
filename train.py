@@ -3,7 +3,6 @@ import numpy as np
 from scipy import ndimage
 from optparse import OptionParser
 import tensorflow as tf
-tf.compat.v1.disable_eager_execution()
 from keras.models import Model, save_model, load_model
 from keras.layers import Dense, Activation, Conv2D, Input, AveragePooling2D, \
      MaxPooling2D, Flatten, LeakyReLU, Dropout
