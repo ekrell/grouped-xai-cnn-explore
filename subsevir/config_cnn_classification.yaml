@@ -1,0 +1,28 @@
+---
+task: "classification"
+data_file: "subsevir/data/dataset_train.npz"
+out_dir: "subsevir/models/"
+yname: "y"
+metric_name: "balanced_accuracy"
+models:
+  - "0"
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+  - "5"
+n_train_samples: "10000"
+channels: 
+  - "0"
+  - "0,1,2"
+img_scales:
+  - "1"
+  - "2"
+  - "3"
+filter_widths:
+  - "4"
+  - "8"
+  - "12"
+patch_sizes: "1,2,4,6,8"
+learning_rate: "0.001"
+epochs: 50
