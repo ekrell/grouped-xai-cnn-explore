@@ -23,7 +23,7 @@ def calc_mean_corrs(attrs):
 def plot_attrs(attrs, valign=False, inverty=True, title="", meancorrs=None,
                top_labels=None, y_labels=None, y_right_labels=None):
   reps, maps, rows, cols = attrs.shape
-  fig, axs = plt.subplots(reps, maps, squeeze=False)#, figsize=(maps*1.5, reps*1.5))
+  fig, axs = plt.subplots(reps, maps, squeeze=False, figsize=(maps*1.5, reps*1.5))
   fig.suptitle(title)
   if valign:
     vmin_ = np.nanmin(attrs)
