@@ -23,7 +23,7 @@ def calc_mean_corrs(attrs):
 def plot_attrs(attrs, valign=False, inverty=True, title="", meancorrs=None,
                top_labels=None, y_labels=None, y_right_labels=None):
   reps, maps, rows, cols = attrs.shape
-  fig, axs = plt.subplots(reps, maps, squeeze=False, figsize=(maps*1.5, reps*1.5))
+  fig, axs = plt.subplots(reps, maps, squeeze=False)#, figsize=(maps*1.5, reps*1.5))
   fig.suptitle(title)
   if valign:
     vmin_ = np.nanmin(attrs)
@@ -153,25 +153,29 @@ for sample in samples:
   for b in range(n_bands):
     axs[0, b].contour(X[sample, :, :, b])
     axs[0, b].axis("off")
-    axs[0, b].invert_yaxis()
+    #axs[0, b].invert_yaxis()
   fig.suptitle("Sample {}  |  target = {}".format(sample, target))
   plt.tight_layout()
   plt.savefig(out_dir + outfiles[sample][4])
+ 
+  y_labels = preds[sample]
+  if np.isscalar(y_labels):
+    y_labels = np.atleast_1d(y_labels)
 
   # Plot attribution maps
-  plot_attrs(occs[sample], top_labels=patch_labels, y_labels=preds[sample],
+  plot_attrs(occs[sample], top_labels=patch_labels, y_labels=y_labels,
       title="Sample {}  |  target: {}  |  Occlusion Maps".format(sample, target),
       meancorrs=occs_mean_corrs, y_right_labels=y_right_labels)
   plt.savefig(out_dir + outfiles[sample][0])
-  plot_attrs(occs[sample], valign=True,  top_labels=patch_labels, y_labels=preds[sample],
+  plot_attrs(occs[sample], valign=True,  top_labels=patch_labels, y_labels=y_labels,
       title="Sample {}  |  target: {}  |  Occlusion Maps".format(sample, target),
       meancorrs=occs_mean_corrs, y_right_labels=y_right_labels)
   plt.savefig(out_dir + outfiles[sample][1])
-  plot_attrs(sums[sample],  top_labels=patch_labels, y_labels=preds[sample],
+  plot_attrs(sums[sample],  top_labels=patch_labels, y_labels=y_labels,
       title="Sample {}  |  target: {}  |  Occlusion Sums".format(sample, target),
       meancorrs=sums_mean_corrs, y_right_labels=y_right_labels)
   plt.savefig(out_dir + outfiles[sample][2])
-  plot_attrs(sums[sample], valign=True, top_labels=patch_labels, y_labels=preds[sample],
+  plot_attrs(sums[sample], valign=True, top_labels=patch_labels, y_labels=y_labels,
       title="Sample {}  |  target: {}  |  Occlusion Sums".format(sample, target),
       meancorrs=sums_mean_corrs, y_right_labels=y_right_labels)
   plt.savefig(out_dir + outfiles[sample][3])
