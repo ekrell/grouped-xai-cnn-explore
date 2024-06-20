@@ -36,16 +36,14 @@ parser.add_option("-o", "--out_dir", default="eurosat/data/", help="Path to down
 
 out_dir = options.out_dir
 
-nc = 1000
-
 # Download data
 os.makedirs(os.path.dirname(out_dir), exist_ok=True)
 local_file = f"{out_dir}/EuroSATallBands.zip"
 t0 = time.time()
 print('Downloading data to: "{0:s}"...'.format(local_file))
-#urlretrieve(url, local_file)
-#with zipfile.ZipFile(local_file, 'r') as zip_ref:
-#  zip_ref.extractall(out_dir)
+urlretrieve(url, local_file)
+with zipfile.ZipFile(local_file, 'r') as zip_ref:
+  zip_ref.extractall(out_dir)
 print("Downloaded and unzipped in {} seconds".format(time.time() - t0))
 
 img_dir_pre = f"{out_dir}/ds/images/remote_sensing/otherDatasets/sentinel_2/tif/"
@@ -55,7 +53,7 @@ features = [None for c in range(n_classes)]
 for c in range(n_classes):
   img_dir = img_dir_pre + classes[c][0]
 
-  files = glob.glob(img_dir + "/*tif")[:nc]
+  files = glob.glob(img_dir + "/*tif")
   n_files = len(files)
   
   targets[c] = np.zeros(n_files).astype("int")
