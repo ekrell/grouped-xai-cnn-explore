@@ -15,7 +15,7 @@ yaml() {
   key="['$1']"
   file=$2
   out=$(python3 -c "import yaml;print(yaml.safe_load(open('$file'))$key)" \
-	  | tr -d '[]' | sed -e 's/",/"/g' | sed -e 's/"//g')
+	  | tr -d '[]' | sed -e 's/",/"/g' | sed -e 's/"//g' | sed -e "s/',/'/g" | sed -e "s/'//g")
  echo $out 
 }
 
@@ -51,12 +51,12 @@ n_train_samples=$(yaml "n_train_samples" $config)
 
 # Which raster bands to include
 channels=($(yaml "channels" $config))
-echo ${channels}
 
 # Scaling factors to apply to the input rasters (along rows, channels)
 img_scales=($(yaml "img_scales" $config))
 echo ${img_scales}
-exit 0
+echo ${img_scales[0]}
+echo ${img_scales[1]}
 
 # Convolutional kernel widths (e.g. '4' means a 4x4 kernel)
 filter_widths=($(yaml "filter_widths" $config))
@@ -69,7 +69,6 @@ learning_rate=$(yaml "learning_rate" $config)
 
 # hyperparameter: epochs (e.g. 50)
 epochs=$(yaml "epochs" $config)
-exit 0
 
 # Control which pipeline steps to run
 do_train=true
@@ -105,6 +104,8 @@ fi
 
 for channel in "${channels[@]}"; do
   for scale in "${img_scales[@]}"; do
+    echo $scale
+    exit 0
     for width in "${filter_widths[@]}"; do
 
       attrs_files=""
