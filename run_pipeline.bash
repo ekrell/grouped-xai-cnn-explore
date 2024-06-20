@@ -36,6 +36,7 @@ data_file=$(yaml "data_file" $config)
 
 # Path to store all output files
 out_dir=$(yaml "out_dir" $config)/
+mkdir -p ${out_dir}
 
 # Name of targets variable in data file (e.g. 'y' or 'y_regr')
 yname=$(yaml "yname" $config)
