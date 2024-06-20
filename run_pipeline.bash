@@ -12,14 +12,15 @@ fi
 echo "Config file: ${config}"
 
 yaml() {
-  key=$1
+  key="['$1']"
   file=$2
-  out=$(yq $key ${file} | tr -d '[]' | sed -e 's/",/"/g' | sed -e 's/"//g') 
-  echo $out
+  out=$(python3 -c "import yaml;print(yaml.safe_load(open('$file'))$key)" \
+	  | tr -d '[]' | sed -e 's/",/"/g' | sed -e 's/"//g')
+ echo $out 
 }
 
 # Task: either 'classification' or 'regression'
-task=$(yaml ".task" $config)
+task=$(yaml "task" $config)
 
 if [ "${task}" == "classification" ]; then
   regression_opt=""
@@ -31,40 +32,44 @@ else
 fi
 
 # Path to '.npz' file with target rasters and predictors
-data_file=$(yaml ".data_file" $config)
+data_file=$(yaml "data_file" $config)
 
 # Path to store all output files
-out_dir=$(yaml ".out_dir" $config)/
+out_dir=$(yaml "out_dir" $config)/
 
 # Name of targets variable in data file (e.g. 'y' or 'y_regr')
-yname=$(yaml ".yname" $config)
+yname=$(yaml "yname" $config)
 
 # Name of model evaluation metric to use in plots (e.g. 'balanced_accuracy', 'r2')
-metric_name=$(yaml ".metric_name" $config)
+metric_name=$(yaml "metric_name" $config)
 
 # Model indices for training repetitions
-models=($(yaml ".models" $config))
+models=($(yaml "models" $config))
 
 # Samples to use for training (will use first N samples)
-n_train_samples=$(yaml ".n_train_samples" $config)
+n_train_samples=$(yaml "n_train_samples" $config)
 
 # Which raster bands to include
-channels=($(yaml ".channels" $config))
+channels=($(yaml "channels" $config))
+echo ${channels}
 
 # Scaling factors to apply to the input rasters (along rows, channels)
-img_scales=($(yaml ".img_scales" $config))
+img_scales=($(yaml "img_scales" $config))
+echo ${img_scales}
+exit 0
 
 # Convolutional kernel widths (e.g. '4' means a 4x4 kernel)
-filter_widths=($(yaml ".filter_widths" $config))
+filter_widths=($(yaml "filter_widths" $config))
 
 # Superpixel sizes (comma-delimited list e.g. '1,2,4' means 1x1, 2x2, and 4x4 patches)
-patch_sizes=$(yaml ".patch_sizes" $config)
+patch_sizes=$(yaml "patch_sizes" $config)
 
 # Huperparameter: learning rate (e.g. 0.001)
-learning_rate=$(yaml ".learning_rate" $config)
+learning_rate=$(yaml "learning_rate" $config)
 
 # hyperparameter: epochs (e.g. 50)
-epochs=$(yaml ".epochs" $config)
+epochs=$(yaml "epochs" $config)
+exit 0
 
 # Control which pipeline steps to run
 do_train=true
