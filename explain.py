@@ -82,6 +82,8 @@ parser.add_option("-p", "--patch_sizes", default="1,2,4,6,8",
                   help="Comma-delimited list of superpixel patch sizes.")
 parser.add_option("-o", "--out_file", default="test-attrs.npz",
                   help="Path to save attributions.")
+parser.add_option(      "--y_name", default="y",
+                  help="Name of 'y' variable in dataset.")
 (options, args) = parser.parse_args()
 
 data_file = options.data_file
@@ -92,11 +94,12 @@ samples = np.array(options.sample_idxs.split(",")).astype(int)
 patch_sizes = np.array(options.patch_sizes.split(",")).astype(int)
 channel_idxs = np.array(options.channels.split(",")).astype(int) \
              if options.channels is not None else None
+y_name = options.y_name
 
 # Load data
 data = np.load(data_file)
 X = data["X"]
-y = data["y"]
+y = data[y_name]
 # Select bands
 if channel_idxs is not None:
   X = X[:, :, :, channel_idxs]

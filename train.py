@@ -33,6 +33,10 @@ parser.add_option("-b", "--batch_size", type=int, default=512,
                   help="Batch size.")
 parser.add_option("-e", "--epochs", type=int, default=50,
                   help="Number of epochs.")
+parser.add_option(      "--regression", default=False, action="store_true",
+                  help="Do regression instead of classification.")
+parser.add_option(      "--y_name", default="y",
+                  help="Name of 'y' variable in dataset.")
 (options, args) = parser.parse_args()
 
 data_file = options.data_file
@@ -47,12 +51,15 @@ learning_rate = options.learning_rate
 batch_size = options.batch_size
 epochs = options.epochs
 
+do_regression = options.regression
+y_name = options.y_name
+
 conv_activation = "relu"
 
 # Load data
 data = np.load(data_file)
 X = data["X"]
-y = data["y"]
+y = data[y_name]
 # Select bands
 if channel_idxs is not None:
   X = X[:, :, :, channel_idxs]
@@ -83,11 +90,18 @@ conv_net = AveragePooling2D(pool_size=(2,2))(conv_net)
 conv_net = Flatten()(conv_net)
 # Dense output layer, equivalent to a logistic regression on the last layer
 conv_net = Dense(1)(conv_net)
-conv_net = Activation("sigmoid")(conv_net)
+
+if do_regression == False:
+  conv_net = Activation("sigmoid")(conv_net)
+
 model = Model(conv_net_in, conv_net)
 # Use the Adam optimizer with default parameters
 opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-model.compile(opt, "binary_crossentropy", metrics=["accuracy"])
+
+if do_regression == False:
+  model.compile(opt, "binary_crossentropy", metrics=["accuracy"])
+else:
+  model.compile(opt, loss="mean_absolute_error", metrics=["r2_score"])
 
 # Train model
 model.fit(X, y, batch_size=batch_size, epochs=epochs)

@@ -93,10 +93,14 @@ parser.add_option("-m", "--metric_files",
                   help="Semicolon-delimited list of metrics files.")
 parser.add_option("-o", "--out_dir", 
                   help="Path to output directory.")
+parser.add_option(      "--metric", default="balanced_accuracy",
+                  help="Name of metric to plot.")
 (options, args) = parser.parse_args()
 attrs_files = options.attr_files.split(";")
 out_dir = options.out_dir
 os.makedirs(os.path.dirname(out_dir), exist_ok=True)
+y_name = "y"
+metric_name = options.metric
 
 metric_files = options.metric_files.split(";") if options.metric_files is not None else None
 
@@ -106,9 +110,10 @@ sums = np.stack([np.load(attrs_file)["occlusion_sums"] for attrs_file in attrs_f
 n_samples, n_reps, n_maps, n_rows, n_cols = occs.shape
 samples = np.array(range(n_samples))
 
+
 # Load data
 X = np.load(attrs_files[0])["X"]
-y = np.load(attrs_files[0])["y"]
+y = np.load(attrs_files[0])[y_name]
 n_bands = X.shape[-1]
 
 # Load predictions
@@ -121,7 +126,7 @@ patch_labels = ["{}x{}".format(ps, ps) for ps in patch_sizes]
 # Load metrics
 if metric_files is not None:
   dfMetrics = pd.concat([pd.read_csv(mf) for mf in metric_files])
-  y_right_labels = dfMetrics["balanced_accuracy"].values
+  y_right_labels = dfMetrics[metric_name].values
 else:
   y_right_labels = None
 
