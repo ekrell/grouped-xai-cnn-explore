@@ -11,7 +11,7 @@ models:
   - "3"
   - "4"
   - "5"
-n_train_samples: "6000"
+n_train_samples: "10000"
 channels: 
   - "3"
   - "3,7"
