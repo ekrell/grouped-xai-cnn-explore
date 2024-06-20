@@ -1,7 +1,7 @@
 ---
 task: "classification"
 data_file: "tornado/data/dataset.npz"
-out_dir: "tornado/models/"
+out_dir: "tornado/models/cnn_classification"
 yname: "y"
 metric_name: "balanced_accuracy"
 models:

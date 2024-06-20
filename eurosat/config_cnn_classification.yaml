@@ -1,7 +1,7 @@
 ---
 task: "classification"
 data_file: "eurosat/data/dataset.npz"
-out_dir: "eurosat/models/"
+out_dir: "eurosat/models/cnn_classification"
 yname: "y"
 metric_name: "balanced_accuracy"
 models:

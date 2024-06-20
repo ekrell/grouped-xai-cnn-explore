@@ -1,7 +1,7 @@
 ---
 task: "classification"
 data_file: "subsevir/data/dataset_train.npz"
-out_dir: "subsevir/models/"
+out_dir: "subsevir/models/cnn_classification"
 yname: "y"
 metric_name: "balanced_accuracy"
 models:
