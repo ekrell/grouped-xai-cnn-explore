@@ -54,9 +54,6 @@ channels=($(yaml "channels" $config))
 
 # Scaling factors to apply to the input rasters (along rows, channels)
 img_scales=($(yaml "img_scales" $config))
-echo ${img_scales}
-echo ${img_scales[0]}
-echo ${img_scales[1]}
 
 # Convolutional kernel widths (e.g. '4' means a 4x4 kernel)
 filter_widths=($(yaml "filter_widths" $config))
@@ -104,8 +101,6 @@ fi
 
 for channel in "${channels[@]}"; do
   for scale in "${img_scales[@]}"; do
-    echo $scale
-    exit 0
     for width in "${filter_widths[@]}"; do
 
       attrs_files=""
