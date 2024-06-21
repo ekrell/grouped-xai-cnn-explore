@@ -1,7 +1,7 @@
 ---
 task: "classification"
 data_file: "subsevir/data/dataset_train.npz"
-out_dir: "subsevir/models/cnn_classification"
+out_dir: "subsevir/models/cnn_classification/"
 yname: "y"
 metric_name: "balanced_accuracy"
 models:
@@ -11,7 +11,7 @@ models:
   - "3"
   - "4"
   - "5"
-n_train_samples: "10000"
+n_train_samples: "60000"
 channels: 
   - "0"
   - "0,1,2"
@@ -23,6 +23,6 @@ filter_widths:
   - "4"
   - "8"
   - "12"
-patch_sizes: "1,2,4,6,8"
+patch_sizes: "1,2,4,6,8,16,28"
 learning_rate: "0.001"
-epochs: 50
+epochs: 100
