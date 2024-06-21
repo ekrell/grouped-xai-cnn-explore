@@ -125,7 +125,7 @@ for channel in "${channels[@]}"; do
 
         # Compute model evaluations
         metrics_file=${out_dir}/model_c-${channel}_s-${scale}_w-${width}__${model}.csv
-        indices_file=${out_dir}/model_c-${channel}_s-${scale}_w-${width}__${model}.txt
+        indices_file=${out_dir}/model_c-${channel}_s-${scale}_w-${width}__0.txt
         if ${do_eval}; then
           python eval.py \
             --data_file ${data_file} \
