@@ -21,23 +21,33 @@ def calc_mean_corrs(attrs):
 
 
 def plot_attrs(attrs, valign=False, inverty=True, title="", meancorrs=None,
-               top_labels=None, y_labels=None, y_right_labels=None):
+               top_labels=None, divides=None, y_labels=None, y_right_labels=None, metric_name=""):
   reps, maps, rows, cols = attrs.shape
   fig, axs = plt.subplots(reps, maps, squeeze=False, figsize=(maps*1.5, reps*1.5))
   fig.suptitle(title)
+
+  attrs_ = attrs
+
+  if divides is not None:
+    for r in range(reps):
+      for m in range(maps):
+        attrs_[r, m] =  attrs_[r, m] / divides[m]
+
   if valign:
     vmin_ = np.nanmin(attrs)
     vmax_ = np.nanmax(attrs)
     vmax = max(abs(vmin_), abs(vmax_))
     vmin = -vmax
+
   for r in range(reps):
     for m in range(maps):
+      data = attrs_[r, m]
       if not valign:
-        vmin_ = np.nanmin(attrs[r, m])
-        vmax_ = np.nanmax(attrs[r, m])
+        vmin_ = np.nanmin(data)
+        vmax_ = np.nanmax(data)
         vmax = max(abs(vmin_), abs(vmax_))
         vmin = -vmax
-      axs[r, m].imshow(attrs[r, m], vmin=vmin, vmax=vmax, cmap="bwr")
+      axs[r, m].imshow(data, vmin=vmin, vmax=vmax, cmap="bwr")
       axs[r, m].set_xticks([])
       axs[r, m].set_yticks([])
       if inverty:
@@ -58,7 +68,8 @@ def plot_attrs(attrs, valign=False, inverty=True, title="", meancorrs=None,
     for r in range(reps):    
       axr = axs[r,-1].twinx()
       axr.set_yticks([])
-      axr.set_ylabel("balanced acc.\n= {:.3f}".format(y_right_labels[r]))
+      axr.set_ylabel("{}\n= {:.3f}".format(metric_name, y_right_labels[r]))
+      
   plt.tight_layout()
 
 
@@ -68,12 +79,9 @@ def make_html_table(files):
 
     <center>
     <img border="2px solid #000" height="300" src="{}"></img>
+    <img border="2px solid #000" height="300" src="{}"></img>
 
     <table>
-    <tr>
-      <td><img src="{}"></img></td>
-      <td><img src="{}"></img></td>
-    </tr>
     <tr>
       <td><img src="{}"></img></td>
       <td><img src="{}"></img></td>
@@ -81,7 +89,7 @@ def make_html_table(files):
     </table>
     </center>
 
-  """.format(files[-1], files[0], files[2], files[1], files[3])
+  """.format(files[5], files[4], files[1], files[3])
   return html
 
 
@@ -101,6 +109,10 @@ out_dir = options.out_dir
 os.makedirs(os.path.dirname(out_dir), exist_ok=True)
 y_name = "y"
 metric_name = options.metric
+metric_name_str = metric_name
+if len(metric_name_str) > 12:  # Abbreviate long name
+  metric_name_str = metric_name_str[:12]
+  metric_name_str[-1] = "."
 
 metric_files = options.metric_files.split(";") if options.metric_files is not None else None
 
@@ -109,7 +121,6 @@ occs = np.stack([np.load(attrs_file)["occlusion"] for attrs_file in attrs_files]
 sums = np.stack([np.load(attrs_file)["occlusion_sums"] for attrs_file in attrs_files], axis=1)
 n_samples, n_reps, n_maps, n_rows, n_cols = occs.shape
 samples = np.array(range(n_samples))
-
 
 # Load data
 X = np.load(attrs_files[0])["X"]
@@ -136,6 +147,7 @@ outfiles = [
    "sample-" + str(si) + "_sums_n.png",
    "sample-" + str(si) + "_sums_v.png",
    "sample-" + str(si) + "_input.png",
+   "sample-" + str(si) + "_input_img.png",
   ) for si in samples]
 
 # Init HTML report
@@ -148,7 +160,7 @@ for sample in samples:
 
   target = y[sample]
 
-  # Plot sample
+  # Plot sample (contour maps)
   fig, axs = plt.subplots(1, n_bands, squeeze=False, figsize=(4*n_bands, 4))
   for b in range(n_bands):
     axs[0, b].contour(X[sample, :, :, b])
@@ -157,6 +169,16 @@ for sample in samples:
   fig.suptitle("Sample {}  |  target = {}".format(sample, target))
   plt.tight_layout()
   plt.savefig(out_dir + outfiles[sample][4])
+
+  # Plot sample (image)
+  fig, axs = plt.subplots(1, n_bands, squeeze=False, figsize=(4*n_bands, 4))
+  for b in range(n_bands):
+    axs[0, b].imshow(X[sample, :, :, b], cmap="Greys")
+    axs[0, b].axis("off")
+    axs[0, b].invert_yaxis()
+  fig.suptitle("Sample {}  |  target = {}".format(sample, target))
+  plt.tight_layout()
+  plt.savefig(out_dir + outfiles[sample][5])
  
   y_labels = preds[sample]
   if np.isscalar(y_labels):
@@ -165,19 +187,19 @@ for sample in samples:
   # Plot attribution maps
   plot_attrs(occs[sample], top_labels=patch_labels, y_labels=y_labels,
       title="Sample {}  |  target: {}  |  Occlusion Maps".format(sample, target),
-      meancorrs=occs_mean_corrs, y_right_labels=y_right_labels)
+      meancorrs=occs_mean_corrs, y_right_labels=y_right_labels, metric_name=metric_name_str)
   plt.savefig(out_dir + outfiles[sample][0])
   plot_attrs(occs[sample], valign=True,  top_labels=patch_labels, y_labels=y_labels,
-      title="Sample {}  |  target: {}  |  Occlusion Maps".format(sample, target),
-      meancorrs=occs_mean_corrs, y_right_labels=y_right_labels)
+      title="Sample {}  |  target: {}  |  Occlusion Maps".format(sample, target), divides=patch_sizes,
+      meancorrs=occs_mean_corrs, y_right_labels=y_right_labels, metric_name=metric_name_str)
   plt.savefig(out_dir + outfiles[sample][1])
   plot_attrs(sums[sample],  top_labels=patch_labels, y_labels=y_labels,
       title="Sample {}  |  target: {}  |  Occlusion Sums".format(sample, target),
-      meancorrs=sums_mean_corrs, y_right_labels=y_right_labels)
+      meancorrs=sums_mean_corrs, y_right_labels=y_right_labels, metric_name=metric_name_str)
   plt.savefig(out_dir + outfiles[sample][2])
   plot_attrs(sums[sample], valign=True, top_labels=patch_labels, y_labels=y_labels,
-      title="Sample {}  |  target: {}  |  Occlusion Sums".format(sample, target),
-      meancorrs=sums_mean_corrs, y_right_labels=y_right_labels)
+      title="Sample {}  |  target: {}  |  Occlusion Sums".format(sample, target), divides=patch_sizes,
+      meancorrs=sums_mean_corrs, y_right_labels=y_right_labels, metric_name=metric_name_str)
   plt.savefig(out_dir + outfiles[sample][3])
 
   # Add plots to HTML report

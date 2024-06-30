@@ -139,10 +139,10 @@ for channel in "${channels[@]}"; do
         fi
 
         # Get samples from each outcome
-        samples=$(sed -n '1p' ${indices_file} | awk '{print $2}' | cut -d, -f1-10)
-        samples=${samples},$(sed -n '2p' ${indices_file} | awk '{print $2}' | cut -d, -f1-10)
-        samples=${samples},$(sed -n '3p' ${indices_file} | awk '{print $2}' | cut -d, -f1-10)
-        samples=${samples},$(sed -n '4p' ${indices_file} | awk '{print $2}' | cut -d, -f1-10)
+        samples=$(sed -n '1p' ${indices_file} | awk '{print $2}' | cut -d, -f1-20)
+        samples=${samples},$(sed -n '2p' ${indices_file} | awk '{print $2}' | cut -d, -f1-20)
+        samples=${samples},$(sed -n '3p' ${indices_file} | awk '{print $2}' | cut -d, -f1-20)
+        samples=${samples},$(sed -n '4p' ${indices_file} | awk '{print $2}' | cut -d, -f1-20)
 
         # Compute model attributions
         attrs_file=${out_dir}/attrs_c-${channel}_s-${scale}_w-${width}__${model}.npz

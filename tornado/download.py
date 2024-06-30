@@ -69,6 +69,11 @@ binarization_threshold = np.percentile(max_target_values, percentile_level)
 target_values = np.array(np.max(targets, axis=(1,2)) \
                          >= binarization_threshold).astype(int)
 
+# Normalize regression target (to simplify plot labels)
+from sklearn import preprocessing
+scaler = preprocessing.MinMaxScaler()
+y_regr = scaler.fit_transform(max_target_values.reshape(-1, 1))
+
 # Normalize predictors
 predictors_norm = np.zeros(predictors.shape, dtype=float)
 scale_cols = ["mean", "std"]
@@ -80,7 +85,8 @@ for i in range(bands):
 
 # Save data
 out_file = out_dir + "/dataset.npz"
-np.savez(out_file, X = predictors_norm, y = target_values)
+np.savez(out_file, X = predictors_norm, y = target_values, y_regr=y_regr)
 print("Saved data to: {}".format(out_file))
 print("  'X' : {}".format(predictors_norm.shape))
 print("  'y' : {}".format(target_values.shape))
+print("  'y_regr' : {}".format(y_regr.shape))
