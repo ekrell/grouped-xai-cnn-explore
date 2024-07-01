@@ -111,28 +111,33 @@ y_name = "y"
 metric_name = options.metric
 metric_name_str = metric_name
 if len(metric_name_str) > 12:  # Abbreviate long name
-  metric_name_str = metric_name_str[:12]
-  metric_name_str[-1] = "."
+  metric_name_str = metric_name_str[:11]
 
 metric_files = options.metric_files.split(";") if options.metric_files is not None else None
 
 # Load attributions
 occs = np.stack([np.load(attrs_file)["occlusion"] for attrs_file in attrs_files], axis=1)
 sums = np.stack([np.load(attrs_file)["occlusion_sums"] for attrs_file in attrs_files], axis=1)
-n_samples, n_reps, n_maps, n_rows, n_cols = occs.shape
-samples = np.array(range(n_samples))
 
 # Load data
 X = np.load(attrs_files[0])["X"]
 y = np.load(attrs_files[0])[y_name]
 n_bands = X.shape[-1]
 
-# Load predictions
-preds = np.squeeze(np.stack([np.load(attrs_file)["ypred"] for attrs_file in attrs_files], axis=1))
-
 # Load metadata
 patch_sizes = np.load(attrs_files[0])["patch_sizes"]
+width = X.shape[2]
+patch_sizes = [p for p in patch_sizes if p < width]
 patch_labels = ["{}x{}".format(ps, ps) for ps in patch_sizes]
+
+occs = occs[:,:,:len(patch_sizes),...]
+sums = sums[:,:,:len(patch_sizes),...]
+
+n_samples, n_reps, n_maps, n_rows, n_cols = occs.shape
+samples = np.array(range(n_samples))
+
+# Load predictions
+preds = np.squeeze(np.stack([np.load(attrs_file)["ypred"] for attrs_file in attrs_files], axis=1))
 
 # Load metrics
 if metric_files is not None:
@@ -149,6 +154,7 @@ outfiles = [
    "sample-" + str(si) + "_input.png",
    "sample-" + str(si) + "_input_img.png",
   ) for si in samples]
+
 
 # Init HTML report
 html = ""
