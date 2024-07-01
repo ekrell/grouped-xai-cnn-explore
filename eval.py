@@ -45,7 +45,7 @@ do_regression = options.regression
 # Load data
 data = np.load(data_file)
 X = data["X"][:n_samples]
-y = data[y_name][:n_samples]
+y = data[y_name][:n_samples].flatten()
 # Select bands
 if channel_idxs is not None:
   X = X[:, :, :, channel_idxs]
@@ -70,9 +70,9 @@ if do_regression:
   # Get outcomes
   diffs = y - ypred
   adiffs = abs(diffs)
-  maxdiff = max(adiffs)
+  maxdiff = np.max(adiffs)
   pdiffs = adiffs / maxdiff
-  
+
   # Get outcomes
   best = np.where(pdiffs < 0.01)[0]
   n_best = len(best)
