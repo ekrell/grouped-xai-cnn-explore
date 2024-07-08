@@ -132,7 +132,7 @@ for channel in "${channels[@]}"; do
 
         # Compute model evaluations
         metrics_file=${out_dir}/model_c-${channel}_s-${scale}_w-${width}__${model}.csv
-        indices_file=${out_dir}/model_c-${channel}_s-${scale}_w-${width}__0.txt
+        indices_file=${out_dir}/model_c-${channel}_s-${scale}_w-${width}__${model}.txt
         if ${do_eval}; then
           python eval.py \
             --data_file ${data_file} \
@@ -145,11 +145,12 @@ for channel in "${channels[@]}"; do
             --y_name ${yname}   ${regression_opt}
         fi
 
+        indices_file_0=${out_dir}/model_c-${channel}_s-${scale}_w-${width}__0.txt
         # Get samples from each outcome
-        samples=$(sed -n '1p' ${indices_file} | awk '{print $2}' | cut -d, -f1-20)
-        samples=${samples},$(sed -n '2p' ${indices_file} | awk '{print $2}' | cut -d, -f1-20)
-        samples=${samples},$(sed -n '3p' ${indices_file} | awk '{print $2}' | cut -d, -f1-20)
-        samples=${samples},$(sed -n '4p' ${indices_file} | awk '{print $2}' | cut -d, -f1-20)
+        samples=$(sed -n '1p' ${indices_file_0} | awk '{print $2}' | cut -d, -f1-20)
+        samples=${samples},$(sed -n '2p' ${indices_file_0} | awk '{print $2}' | cut -d, -f1-20)
+        samples=${samples},$(sed -n '3p' ${indices_file_0} | awk '{print $2}' | cut -d, -f1-20)
+        samples=${samples},$(sed -n '4p' ${indices_file_0} | awk '{print $2}' | cut -d, -f1-20)
 
         # Compute model attributions
         attrs_file=${out_dir}/attrs_c-${channel}_s-${scale}_w-${width}_g-${group_method}__${model}.npz
