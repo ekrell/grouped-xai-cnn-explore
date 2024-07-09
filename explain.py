@@ -91,6 +91,7 @@ scale_prop = options.scale_data
 model_file = options.model_file
 attrs_file = options.out_file
 samples = np.array(options.sample_idxs.split(",")).astype(int)
+
 patch_sizes = np.array(options.patch_sizes.split(",")).astype(int)
 channel_idxs = np.array(options.channels.split(",")).astype(int) \
              if options.channels is not None else None
