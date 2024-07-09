@@ -4,6 +4,11 @@ from optparse import OptionParser
 from scipy import ndimage
 import tensorflow as tf
 import keras
+from skimage.segmentation import slic
+
+##############################
+# XAI for 'grid' superpixels #
+##############################
 
 def calc_sums(attribs, patch_size):
   def apply_patch(in_image, out_image, top_left_x, top_left_y, patch_size):
@@ -66,6 +71,61 @@ def calc_occlusion(img, model, patch_size=2, class_idx=0, batch_size=128):
   return sensitivity_map
 
 
+###############################
+# XAI for segment superpixels #
+###############################
+
+def calc_sums_segments(img, values, n_segments):
+  sensitivity_map = np.zeros((img.shape[0], img.shape[1]))
+  segments = slic(img, n_segments=n_segments, compactness=0.1)
+  segment_idxs = segment_idxs = np.unique(segments.flatten())
+  for segment in segments:
+    for si in segment_idxs:
+      sensitivity_map[segments == si] = np.sum(values[segments == si])
+  return sensitivity_map
+
+
+def calc_occlusion_segments(img, model, n_segments, class_idx=0, batch_size=512):
+  segments = slic(img, n_segments=n_segments, compactness=0.1)
+  sensitivity_map = np.zeros((img.shape[0], img.shape[1]))
+  patch_batch = np.zeros((batch_size, rows, cols, bands))
+  original_prob = predicted_classes = model.predict(np.array([img]))[0]
+  all_predictions = []
+
+  segment_idxs = np.unique(segments.flatten())
+  b = 0
+  for segment in segments:
+    for si in segment_idxs:
+      # Mask out patch
+      patched_image = np.array(img, copy=True)
+      patched_image[segments == si] = 0
+      patch_batch[b] = patched_image
+      b += 1
+
+      # Predict batch
+      if b == batch_size:
+        predicted_classes = model.predict(patch_batch)
+        all_predictions.append(predicted_classes[:, class_idx])
+        b = 0
+
+  # Predict with remaining batch
+  predicted_classes = model.predict(patch_batch)
+  all_predictions.append(predicted_classes[:, class_idx])
+  # Combine predictions into single vector
+  all_predictions = np.concatenate(all_predictions)
+  # Use predictions to make occlusion map
+  p_idx = 0
+  for segment in segments:
+    for si in segment_idxs:
+      confidence = all_predictions[p_idx]
+      p_idx += 1
+      diff = original_prob - confidence
+      # Save confidence for this specific patched image in map
+      sensitivity_map[segments == si
+      ] = diff
+  return sensitivity_map
+
+
 # Options
 parser = OptionParser()
 parser.add_option("-d", "--data_file", default="tornado/data/dataset.npz",
@@ -84,6 +144,8 @@ parser.add_option("-o", "--out_file", default="test-attrs.npz",
                   help="Path to save attributions.")
 parser.add_option(      "--y_name", default="y",
                   help="Name of 'y' variable in dataset.")
+parser.add_option("-g", "--group_method", default="grid",
+                  help="Name of pixel grouping method to use ('grid', 'slic').")
 (options, args) = parser.parse_args()
 
 data_file = options.data_file
@@ -91,11 +153,12 @@ scale_prop = options.scale_data
 model_file = options.model_file
 attrs_file = options.out_file
 samples = np.array(options.sample_idxs.split(",")).astype(int)
-
 patch_sizes = np.array(options.patch_sizes.split(",")).astype(int)
 channel_idxs = np.array(options.channels.split(",")).astype(int) \
              if options.channels is not None else None
 y_name = options.y_name
+
+group_method = options.group_method
 
 # Load data
 data = np.load(data_file)
@@ -128,13 +191,27 @@ attrs = {
 for sidx in range(samples):
   for pidx in range(n_patch_sizes):
     # Occlusion maps
-    attrs["occlusion"][sidx, pidx] = calc_occlusion(X[sidx], model, patch_size=patch_sizes[pidx])
+    if group_method == "grid":
+      attrs["occlusion"][sidx, pidx] = \
+        calc_occlusion(X[sidx], model, patch_size=patch_sizes[pidx])
+    else:
+      attrs["occlusion"][sidx, pidx] = \
+        calc_occlusion_segments(X[sidx], model, n_segments=patch_sizes[pidx])
     # Occlusion sums    
     if pidx == 0:
-      attrs["occlusion_sums"][sidx, pidx] = calc_occlusion(X[sidx], model, patch_size=patch_sizes[pidx])
+      if group_method == "grid":
+        attrs["occlusion_sums"][sidx, pidx] = \
+           calc_occlusion(X[sidx], model, patch_size=patch_sizes[pidx])
+      else:
+        attrs["occlusion_sums"][sidx, pidx] = \
+          calc_occlusion_segments(X[sidx], model, n_segments=patch_sizes[pidx])
     else:
-      attrs["occlusion_sums"][sidx, pidx] = calc_sums(attrs["occlusion_sums"][sidx, 0], patch_sizes[pidx])
-
+      if group_method == "grid":
+        attrs["occlusion_sums"][sidx, pidx] = \
+          calc_sums(attrs["occlusion_sums"][sidx, 0], patch_sizes[pidx])
+      else:
+        attrs["occlusion_sums"][sidx, pidx] = \
+          calc_sums_segments(X[sidx], attrs["occlusion_sums"][sidx, 0], patch_sizes[pidx])
 
 # Save
 np.savez(attrs_file, 

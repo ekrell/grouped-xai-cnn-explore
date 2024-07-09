@@ -103,6 +103,8 @@ parser.add_option("-o", "--out_dir",
                   help="Path to output directory.")
 parser.add_option(      "--metric", default="balanced_accuracy",
                   help="Name of metric to plot.")
+parser.add_option(      "--use_segments", default=False, action="store_true",
+                  help="Specify that superpixels are clusters, not squares.")
 (options, args) = parser.parse_args()
 attrs_files = options.attr_files.split(";")
 out_dir = options.out_dir
@@ -115,6 +117,9 @@ if len(metric_name_str) > 12:  # Abbreviate long name
 
 metric_files = options.metric_files.split(";") if options.metric_files is not None else None
 
+use_segments = options.use_segments
+use_segments = True
+
 # Load attributions
 occs = np.stack([np.load(attrs_file)["occlusion"] for attrs_file in attrs_files], axis=1)
 sums = np.stack([np.load(attrs_file)["occlusion_sums"] for attrs_file in attrs_files], axis=1)
@@ -126,12 +131,15 @@ n_bands = X.shape[-1]
 
 # Load metadata
 patch_sizes = np.load(attrs_files[0])["patch_sizes"]
-width = X.shape[2]
-patch_sizes = [p for p in patch_sizes if p < width]
-patch_labels = ["{}x{}".format(ps, ps) for ps in patch_sizes]
 
-occs = occs[:,:,:len(patch_sizes),...]
-sums = sums[:,:,:len(patch_sizes),...]
+if use_segments == False:
+  width = X.shape[2]
+  patch_sizes = [p for p in patch_sizes if p < width]
+  patch_labels = ["{}x{}".format(ps, ps) for ps in patch_sizes]
+  occs = occs[:,:,:len(patch_sizes),...]
+  sums = sums[:,:,:len(patch_sizes),...]
+else:
+  patch_labels = ["{}".format(ps) for ps in patch_sizes]
 
 n_samples, n_reps, n_maps, n_rows, n_cols = occs.shape
 samples = np.array(range(n_samples))
