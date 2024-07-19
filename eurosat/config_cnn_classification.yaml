@@ -14,7 +14,7 @@ models:
 n_train_samples: "10000"
 channels: 
   - "3"
-  - "3,7"
+    #  - "3,7"
 img_scales:
   - "1"
   - "2"
@@ -23,6 +23,6 @@ filter_widths:
   - "4"
   - "8"
   - "12"
-patch_sizes: "1,2,4,6,8,16,28"
+patch_sizes: "1,2,4,8,16,32"
 learning_rate: "0.001"
 epochs: 50
