@@ -68,6 +68,13 @@ learning_rate=$(yaml "learning_rate" $config)
 # hyperparameter: epochs (e.g. 50)
 epochs=$(yaml "epochs" $config)
 
+# Grouping methods
+group_method=($(yaml "group_method" $config))
+echo ${group_method}
+if [ -z "$group_method" ]; then
+  group_method="grid"
+fi
+
 # Control which pipeline steps to run
 do_train=true
 do_eval=true
@@ -146,7 +153,7 @@ for channel in "${channels[@]}"; do
         samples=${samples},$(sed -n '4p' ${indices_file_0} | awk '{print $2}' | cut -d, -f1-20)
 
         # Compute model attributions
-        attrs_file=${out_dir}/attrs_c-${channel}_s-${scale}_w-${width}__${model}.npz
+        attrs_file=${out_dir}/attrs_c-${channel}_s-${scale}_w-${width}_g-${group_method}__${model}.npz
         if ${do_xai}; then
           python explain.py \
             --data_file ${data_file} \
@@ -156,7 +163,8 @@ for channel in "${channels[@]}"; do
             --channels ${channel} \
             --sample_idxs ${samples} \
             --out_file ${attrs_file} \
-            --y_name ${yname}
+            --y_name ${yname} \
+            --group_method ${group_method}
         fi
 
         # Store up a semicolon-delimited file lists
@@ -168,7 +176,7 @@ for channel in "${channels[@]}"; do
       metrics_files=${metrics_files::-1}
 
       # Plot XAI for the set of model repetitions
-      xai_dir=${out_dir}/xai_c-${channel}_s-${scale}_w-${width}_m-occlusion/
+      xai_dir=${out_dir}/xai_c-${channel}_s-${scale}_w-${width}_g-${group_method}_m-occlusion/
       mkdir -p ${xai_dir}
       if ${do_plot}; then
         python plot.py \
