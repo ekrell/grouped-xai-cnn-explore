@@ -5,6 +5,7 @@ from scipy import ndimage
 import tensorflow as tf
 import keras
 from skimage.segmentation import slic
+import time
 
 ##############################
 # XAI for 'grid' superpixels #
@@ -21,7 +22,7 @@ def calc_sums(attribs, patch_size):
       apply_patch(attribs, img, top_left_x, top_left_y, patch_size)
   return img
 
-def calc_occlusion(img, model, patch_size=2, class_idx=0, batch_size=128):
+def calc_occlusion(img, model, patch_size=2, class_idx=0, batch_size=512):
   def apply_patch(image, top_left_x, top_left_y, patch_size):
     patched_image = np.array(image, copy=True)
     patched_image[top_left_y:top_left_y + patch_size, top_left_x:top_left_x + patch_size] = 0
@@ -32,7 +33,7 @@ def calc_occlusion(img, model, patch_size=2, class_idx=0, batch_size=128):
   bands = img.shape[2]
 
   # Make first prediction
-  original_prob = model.predict(img.reshape(1, rows, cols, bands))
+  original_prob = model.predict(img.reshape(1, rows, cols, bands), verbose=0)
   # Initialize storage
   sensitivity_map = np.zeros((rows, cols))
   patch_batch = np.zeros((batch_size, rows, cols, bands))
@@ -48,11 +49,12 @@ def calc_occlusion(img, model, patch_size=2, class_idx=0, batch_size=128):
       b += 1
       # Predict batch
       if b == batch_size:
-        predicted_classes = model.predict(patch_batch)
+        predicted_classes = model.predict(patch_batch, verbose=0)
         all_predictions.append(predicted_classes[:, class_idx])
         b = 0
+
   # Predict with remaining batch
-  predicted_classes = model.predict(patch_batch)
+  predicted_classes = model.predict(patch_batch, verbose=0)
   all_predictions.append(predicted_classes[:, class_idx])
   # Combine predictions into single vector
   all_predictions = np.concatenate(all_predictions)
@@ -89,40 +91,43 @@ def calc_occlusion_segments(img, model, n_segments, class_idx=0, batch_size=512)
   segments = slic(img, n_segments=n_segments, compactness=0.1)
   sensitivity_map = np.zeros((img.shape[0], img.shape[1]))
   patch_batch = np.zeros((batch_size, rows, cols, bands))
-  original_prob = predicted_classes = model.predict(np.array([img]))[0]
+  original_prob = predicted_classes = model.predict(np.array([img]), verbose=0)[0]
+
   all_predictions = []
+
+  # Init patched image storage
 
   segment_idxs = np.unique(segments.flatten())
   b = 0
-  for segment in segments:
-    for si in segment_idxs:
-      # Mask out patch
-      patched_image = np.array(img, copy=True)
-      patched_image[segments == si] = 0
-      patch_batch[b] = patched_image
-      b += 1
 
-      # Predict batch
-      if b == batch_size:
-        predicted_classes = model.predict(patch_batch)
-        all_predictions.append(predicted_classes[:, class_idx])
-        b = 0
+  # For each segment
+  for si in segment_idxs:
+    # Mask out patch
+    patched_image = img.copy()
+    patched_image[segments == si] = 0
+    patch_batch[b] = patched_image
+    b += 1
+
+    # Predict batch
+    if b == batch_size:
+      predicted_classes = model.predict(patch_batch, verbose=0)
+      all_predictions.append(predicted_classes[:, class_idx])
+      b = 0
 
   # Predict with remaining batch
-  predicted_classes = model.predict(patch_batch)
+  predicted_classes = model.predict(patch_batch, verbose=0)
   all_predictions.append(predicted_classes[:, class_idx])
   # Combine predictions into single vector
   all_predictions = np.concatenate(all_predictions)
   # Use predictions to make occlusion map
   p_idx = 0
-  for segment in segments:
-    for si in segment_idxs:
-      confidence = all_predictions[p_idx]
-      p_idx += 1
-      diff = original_prob - confidence
-      # Save confidence for this specific patched image in map
-      sensitivity_map[segments == si
-      ] = diff
+  for si in segment_idxs:
+    confidence = all_predictions[p_idx]
+    p_idx += 1
+    diff = original_prob - confidence
+    # Save confidence for this specific patched image in map
+    sensitivity_map[segments == si
+    ] = diff
   return sensitivity_map
 
 
@@ -177,7 +182,7 @@ X = np.array([ndimage.zoom(x, (scale_prop, scale_prop, 1), order=order) for x in
 # Load model
 model = keras.models.load_model(model_file)
 # Make predictions
-ypred = model.predict(X)
+ypred = model.predict(X, verbose=0)
 
 samples, rows, cols, bands = X.shape
 n_patch_sizes = patch_sizes.shape[0]
@@ -190,6 +195,9 @@ attrs = {
 # Run XAI methods
 for sidx in range(samples):
   for pidx in range(n_patch_sizes):
+
+    t0 = time.time()
+
     # Occlusion maps
     if group_method == "grid":
       attrs["occlusion"][sidx, pidx] = \
@@ -212,6 +220,10 @@ for sidx in range(samples):
       else:
         attrs["occlusion_sums"][sidx, pidx] = \
           calc_sums_segments(X[sidx], attrs["occlusion_sums"][sidx, 0], patch_sizes[pidx])
+
+    print(sidx, "/", samples, "   ", time.time() - t0)
+    t0 = time.time()
+
 
 # Save
 np.savez(attrs_file, 
